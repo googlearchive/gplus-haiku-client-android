@@ -1,0 +1,103 @@
+<!--
+Copyright (C) 2014 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:gravity="center_horizontal"
+    tools:context="com.google.plus.samples.haikuplus.HaikuFragment">
+
+    <TextView
+        style="@style/AppTheme.Text"
+        android:id="@+id/haiku_title"
+        android:textSize="25sp"
+        android:layout_marginBottom="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        style="@style/AppTheme.Text"
+        android:textSize="16sp"
+        android:id="@+id/haiku_line_one"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content" />
+    <TextView
+        style="@style/AppTheme.Text"
+        android:textSize="16sp"
+        android:id="@+id/haiku_line_two"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content" />
+    <TextView
+        style="@style/AppTheme.Text"
+        android:textSize="16sp"
+        android:id="@+id/haiku_line_three"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content" />
+    <ImageView
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:layout_width="fill_parent"
+        android:layout_height="2dp"
+        android:src="@drawable/divider"/>
+    <com.android.volley.toolbox.NetworkImageView
+        android:id="@+id/haiku_profile_pic"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp" />
+    <TextView
+        style="@style/AppTheme.Text"
+        android:id="@+id/haiku_user_display_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        style="@style/AppTheme.Text"
+        android:id="@+id/haiku_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        style="@style/AppTheme.Text"
+        android:textSize="16sp"
+        android:id="@+id/haiku_vote_count"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content" />
+    <LinearLayout
+        android:paddingTop="10dp"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+        <Button
+            style="@style/AppTheme.Button.Action"
+            android:id="@+id/button_vote"
+            android:layout_weight="3"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/button_vote"
+            />
+        <Button
+            style="@style/AppTheme.Button.Action"
+            android:layout_weight="3"
+            android:id="@+id/button_promote"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/button_promote"
+            />
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (C) 2014 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<resources>
+
+    <string name="app_name">Haiku+</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_create_haiku">CreateHaikuActivity</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="missing_haikus">No haikus right now. Why not create one yourself, and share it with friends.</string>
+    <string name="button_vote">Vote</string>
+    <string name="button_promote">Promote</string>
+    <string name="sign_in_text"><![CDATA[Sign In to view friends\' Haikus & create your own]]></string>
+    <string name="button_create_haiku">Add A Haiku</string>
+    <string name="create_header">Add A Haiku</string>
+    <string name="button_add">Add</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="create_field_title">Title</string>
+    <string name="create_field_lineone">Line 1</string>
+    <string name="create_field_linetwo">Line 2</string>
+    <string name="create_field_linethree">Line 3</string>
+    <string name="haiku_written">Haiku saved</string>
+    <string name="haiku_shared">Haiku shared</string>
+    <string name="haiku_voted">Voted</string>
+    <string name="button_everyone">Everyone</string>
+    <string name="button_friends">Friends</string>
+    <string name="stream_haiku_filter">Show haikus by:</string>
+    <string name="button_signout">Sign Out</string>
+    <string name="button_disconnect">Disconnect</string>
+    <string name="loading_haiku">Loading Haiku</string>
+    <string name="signin_dialog_yes">Sign In</string>
+    <string name="signin_dialog_no">No</string>
+    <string name="signin_dialog_message">Would you like to Sign In?</string>
+    <string name="vote_cta">VOTE</string>
+    <string name="haiku_not_signedin">You must be signed in to post a Haiku.</string>
+
+    <!-- Form validation errors -->
+    <string name="error_title_empty">Title cannot be empty.</string>
+    <string name="error_lineone_empty">Line One cannot be empty.</string>
+    <string name="error_linetwo_empty">Line Two cannot be empty.</string>
+    <string name="error_linethree_empty">Line Three cannot be empty.</string>
+
+</resources>
