@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (C) 2014 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+    <!-- Signed In create block -->
+    <LinearLayout
+        android:id="@+id/signed_in_stream_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5sp"
+        android:layout_marginBottom="5sp"
+        android:orientation="vertical"
+        android:gravity="center">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:weightSum="8"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:layout_height="wrap_content">
+            <Button
+                style="@style/AppTheme.Button.Action"
+                android:id="@+id/button_create_haiku"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="6"
+                android:layout_marginBottom="10dp"
+                android:text="@string/button_create_haiku" />
+        </LinearLayout>
+        <TextView
+            style="@style/AppTheme.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stream_haiku_filter"/>
+        <RadioGroup
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/lightgrey"
+            android:weightSum="2"
+            android:layout_marginTop="5dp"
+            android:layout_marginStart="40dp"
+            android:layout_marginEnd="40dp"
+            android:layout_marginBottom="10dp">
+            <RadioButton android:id="@+id/radio_everyone"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/button_everyone"
+                android:gravity="center"
+                android:button="@null"
+                android:textColor="@color/white"
+                android:background="@drawable/button_toggle"
+                android:paddingTop="3sp"
+                android:paddingBottom="3sp"
+                android:layout_weight="1" />
+            <RadioButton android:id="@+id/radio_friends"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/button_friends"
+                android:textColor="@color/white"
+                android:paddingTop="3sp"
+                android:paddingBottom="3sp"
+                android:button="@null"
+                android:gravity="center"
+                android:background="@drawable/button_toggle"
+                android:layout_weight="1" />
+        </RadioGroup>
+    </LinearLayout>
+</LinearLayout>
