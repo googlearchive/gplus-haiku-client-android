@@ -31,5 +31,3 @@ proguard/
 
 # Gradle
 .gradle
-gradlew
-gradlew.bat
