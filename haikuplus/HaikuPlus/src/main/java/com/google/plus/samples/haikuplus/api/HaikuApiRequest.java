@@ -180,9 +180,8 @@ public class HaikuApiRequest<T> extends Request<T> {
         if (mSession.getSessionId() != null) {
             headers.put(HEADER_COOKIE, HaikuClient.COOKIE_PREFIX + mSession.getSessionId());
         } else if (mSession.getAccountName() != null) {
-            String idToken = mSession.getIdTokenSynchronous();
-            if (idToken != null) {
-                headers.put(HEADER_AUTH, HEADER_BEARER + idToken);
+            if (mSession.getIdToken() != null) {
+                headers.put(HEADER_AUTH, HEADER_BEARER + mSession.getIdToken());
             } else {
                 Log.d(TAG, String.format("Bearer token null.  Id %s, Acct %s.",
                         mSession.getSessionId(), mSession.getAccountName()));

@@ -15,8 +15,21 @@
 
 package com.google.plus.samples.haikuplus;
 
-import com.google.android.gms.auth.GoogleAuthException;
-import com.google.android.gms.auth.UserRecoverableAuthException;
+import android.accounts.AccountManager;
+import android.app.Activity;
+import android.app.ProgressDialog;
+import android.content.Intent;
+import android.content.IntentSender;
+import android.net.Uri;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.util.Log;
+import android.view.View;
+import android.view.Window;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.android.volley.toolbox.NetworkImageView;
 import com.google.android.gms.common.AccountPicker;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.SignInButton;
@@ -31,22 +44,7 @@ import com.google.plus.samples.haikuplus.models.Haiku;
 import com.google.plus.samples.haikuplus.models.HaikuDeepLink;
 import com.google.plus.samples.haikuplus.models.User;
 
-import android.accounts.AccountManager;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.ProgressDialog;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.view.Window;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import com.android.volley.toolbox.NetworkImageView;
+import java.util.Set;
 
 /**
  * Primary activity for the Haiku+ app. Acts as a fragment container for the stream and haiku view
@@ -57,6 +55,7 @@ import com.android.volley.toolbox.NetworkImageView;
  */
 public class MainActivity extends Activity implements
         HaikuInteractionListener, GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.ServerAuthCodeCallbacks,
         View.OnClickListener, HaikuClient.HaikuServiceListener,
         GoogleApiClient.OnConnectionFailedListener, HaikuClient.HaikuRetrievedListener {
 
@@ -66,7 +65,7 @@ public class MainActivity extends Activity implements
 
     private static final String TAG = "HaikuPlus-MainActivity";
     private static final int REQ_CHOOSE_ACCOUNT = 55333;
-    private static final int REQ_CONSENT = 55332;
+    private static final int REQ_SIGN_IN = 55332;
     private static final int REQ_SHARE = 55331;
     private static final String SAVED_USER = "user";
     private static final String SAVED_DEEPLINK = "deeplink";
@@ -74,12 +73,12 @@ public class MainActivity extends Activity implements
     private HaikuSession mHaikuPlusSession;
     private HaikuClient mHaikuApi;
     private User mUser;
-    private Boolean mShouldResolve = false;
+    private boolean mIsResolving = false;
+    private boolean mSignInClicked = false;
     private VolleyContainer mVolley;
     private HaikuDeepLink mDeepLink;
     private ProgressDialog mDialog;
     private Runnable mRunAfterSignIn;
-    private AlertDialog mSignInDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,26 +94,35 @@ public class MainActivity extends Activity implements
         findViewById(R.id.button_sign_out).setOnClickListener(this);
         findViewById(R.id.button_disconnect).setOnClickListener(this);
 
-        mHaikuPlusSession = HaikuSession.getSessionForServer(
-                getApplicationContext(), Constants.SERVER_CLIENT_ID);
+        mHaikuPlusSession = HaikuSession.getSessionForServer(getApplicationContext());
         mHaikuApi = HaikuClient.getInstance(this, mHaikuPlusSession);
 
         mVolley = VolleyContainer.getInstance(this);
 
+        // Check the constants
+        if (Constants.SERVER_CLIENT_ID.equals("YOUR_WEB_CLIENT_ID") ||
+                Constants.SERVER_URL.equals("YOUR_PUBLIC_SERVER_URL")) {
+            throw new RuntimeException("Error: please configure SERVER_CLIENT_ID and "
+                    + "SERVER_URL in Constants.java");
+        }
+
         GoogleApiClient.Builder builder = new GoogleApiClient.Builder(this)
                 .addOnConnectionFailedListener(this)
                 .addConnectionCallbacks(this)
-                .setAccountName(mHaikuPlusSession.getAccountName());
+                .setAccountName(mHaikuPlusSession.getAccountName())
+                .requestServerAuthCode(Constants.SERVER_CLIENT_ID, this);
+
+        // Add scopes
         for (String scope : Constants.SCOPES) {
             builder.addScope(new Scope(scope));
         }
+
+        // Add Google+ API with visible actions
         Plus.PlusOptions plusOptions = new Plus.PlusOptions.Builder()
                 .addActivityTypes(Constants.ACTIONS)
                 .build();
         builder.addApi(Plus.API, plusOptions);
         mGoogleApiClient = builder.build();
-
-        String deepLinkId = PlusShare.getDeepLinkId(this.getIntent());
 
         if (savedInstanceState == null) {
             getFragmentManager().beginTransaction()
@@ -122,6 +130,7 @@ public class MainActivity extends Activity implements
                     .commit();
         }
 
+        String deepLinkId = PlusShare.getDeepLinkId(this.getIntent());
         if (deepLinkId != null) {
             mDeepLink = HaikuDeepLink.fromString(deepLinkId);
             if (mDeepLink.getHaikuId() == null) {
@@ -156,51 +165,81 @@ public class MainActivity extends Activity implements
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable(SAVED_USER, mUser);
         outState.putParcelable(SAVED_DEEPLINK, mDeepLink);
     }
 
     @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         onUserRetrieved((User) savedInstanceState.getParcelable(SAVED_USER));
-        mDeepLink = (HaikuDeepLink) savedInstanceState.getParcelable(SAVED_DEEPLINK);
+        mDeepLink = savedInstanceState.getParcelable(SAVED_DEEPLINK);
     }
 
     @Override
-    public void onUserRetrieved(User user) {
-        StreamFragment frag =
-                (StreamFragment) getFragmentManager().findFragmentByTag(STREAM_FRAG_TAG);
-        if (user != null) {
-            mUser = user;
-            ((TextView) findViewById(R.id.user_name)).setText(mUser.googleDisplayName);
-            NetworkImageView profile = ((NetworkImageView) findViewById(R.id.user_profile_pic));
-            profile.setImageUrl(mUser.googlePhotoUrl, mVolley.getImageLoader());
-            findViewById(R.id.signed_in_container).setVisibility(View.VISIBLE);
-            findViewById(R.id.signed_out_container).setVisibility(View.GONE);
-            if (frag != null) {
-                frag.setUser(mUser, this);
-            }
-        } else {
-            mUser = null;
-            findViewById(R.id.signed_in_container).setVisibility(View.GONE);
-            findViewById(R.id.signed_out_container).setVisibility(View.VISIBLE);
-            if (frag != null) {
-                frag.setUser(null, this);
-            }
-        }
-        setProgressBarIndeterminateVisibility(false);
+    public CheckResult onCheckServerAuthorization(String idToken, Set<Scope> scopes) {
+        Log.d(TAG, "onCheckServerAuthorization");
+        mHaikuPlusSession.setIdToken(idToken);
 
-        // Run a queued action
-        // NOTE: In some situations, mRunAfterSignIn may be garbage collected while the SignIn
-        // process takes place.  Therefore, it is not recommended to use this pattern for
-        // critical tasks.
-        if (mRunAfterSignIn != null) {
-            mRunAfterSignIn.run();
-            mRunAfterSignIn = null;
+        if (mHaikuPlusSession.checkSessionState(true) == HaikuSession.State.HAS_SESSION) {
+            return CheckResult.newAuthNotRequiredResult();
+        } else {
+            return CheckResult.newAuthRequiredResult(scopes);
         }
+    }
+
+    @Override
+    public boolean onUploadServerAuthCode(String idToken, String serverAuthCode) {
+        Log.d(TAG, "onUploadServerAuthCode");
+
+        // Async fetch current user
+        mHaikuPlusSession.setCode(serverAuthCode);
+        mHaikuApi.fetchCurrentUser(this);
+
+        // Always return true, because user fetch is asynchronous
+        return true;
+    }
+
+    @Override
+    public void onUserRetrieved(final User user) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                StreamFragment frag =
+                        (StreamFragment) getFragmentManager().findFragmentByTag(STREAM_FRAG_TAG);
+                if (user != null) {
+                    mUser = user;
+                    ((TextView) findViewById(R.id.user_name)).setText(mUser.googleDisplayName);
+                    NetworkImageView profile = ((NetworkImageView) findViewById(R.id.user_profile_pic));
+                    profile.setImageUrl(mUser.googlePhotoUrl, mVolley.getImageLoader());
+                    findViewById(R.id.signed_in_container).setVisibility(View.VISIBLE);
+                    findViewById(R.id.signed_out_container).setVisibility(View.GONE);
+                    if (frag != null) {
+                        frag.setUser(mUser, MainActivity.this);
+                    }
+                } else {
+                    mUser = null;
+                    findViewById(R.id.signed_in_container).setVisibility(View.GONE);
+                    findViewById(R.id.signed_out_container).setVisibility(View.VISIBLE);
+                    if (frag != null) {
+                        frag.setUser(null, MainActivity.this);
+                    }
+                }
+                setProgressBarIndeterminateVisibility(false);
+
+                // Run a queued action
+                // NOTE: In some situations, mRunAfterSignIn may be garbage collected while the SignIn
+                // process takes place.  Therefore, it is not recommended to use this pattern for
+                // critical tasks.
+                if (mRunAfterSignIn != null) {
+                    mRunAfterSignIn.run();
+                    mRunAfterSignIn = null;
+                }
+            }
+        });
+
     }
 
     @Override
@@ -231,39 +270,6 @@ public class MainActivity extends Activity implements
         mHaikuPlusSession.storeAccountName(null);
         onUserRetrieved(null);
         setProgressBarIndeterminateVisibility(false);
-    }
-
-    @Override
-    public void codeSignInRequired() {
-        setProgressBarIndeterminateVisibility(false);
-        // For now, we're just immediately popping a new consent.
-        Log.e(TAG, "We need a new code");
-        mHaikuPlusSession.storeSessionId(null);
-        mUser = null;
-        if (mShouldResolve) {
-            new CheckOrRetrieveCodeTask().execute();
-        } else if (mSignInDialog == null || !mSignInDialog.isShowing()) {
-            mSignInDialog = new AlertDialog.Builder(this)
-                    .setNegativeButton(getString(R.string.signin_dialog_no),
-                            new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            // Revert to signed out view
-                            onSignedOut();
-                        }
-                    })
-                    .setPositiveButton(getString(R.string.signin_dialog_yes),
-                            new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            // Begin sign in again
-                            new CheckOrRetrieveCodeTask().execute();
-                        }
-                    })
-                    .setMessage(getString(R.string.signin_dialog_message))
-                    .create();
-            mSignInDialog.show();
-        }
     }
 
     @Override
@@ -303,7 +309,7 @@ public class MainActivity extends Activity implements
 
     @Override
     public void onConnected(Bundle bundle) {
-        Log.d(TAG, "Connected");
+        Log.d(TAG, "onConnected");
         HaikuSession.State state = mHaikuPlusSession.checkSessionState();
         if (state == HaikuSession.State.UNAUTHENTICATED) {
             // We think we're signed in, but we don't seem to be!
@@ -315,8 +321,12 @@ public class MainActivity extends Activity implements
             Plus.AccountApi.clearDefaultAccount(mGoogleApiClient);
             mGoogleApiClient.disconnect();
             mGoogleApiClient.connect();
-        } else if (state == HaikuSession.State.HAS_SESSION && mUser == null) {
-            mHaikuApi.fetchCurrentUser(this);
+        } else if (state == HaikuSession.State.HAS_SESSION) {
+            if (mUser == null) {
+                mHaikuApi.fetchCurrentUser(this);
+            } else {
+                onUserRetrieved(mUser);
+            }
         }
     }
 
@@ -329,9 +339,25 @@ public class MainActivity extends Activity implements
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.d(TAG, "Connection failed");
-        // We never need to resolve this - either we have stored tokens on the server
-        // and can use the id token without further interaction, or we don't and we
-        // need to resolve the code.
+
+        if (mIsResolving) {
+            Log.d(TAG, "Already resolving.");
+            return;
+        }
+
+        // Attempt to resolve the ConnectionResult
+        if (connectionResult.hasResolution() && mSignInClicked) {
+            mIsResolving = true;
+            mSignInClicked = false;
+
+            try {
+                connectionResult.startResolutionForResult(this, REQ_SIGN_IN);
+            } catch (IntentSender.SendIntentException e) {
+                Log.e(TAG, "Could not resolve.", e);
+                mIsResolving = false;
+                mGoogleApiClient.connect();
+            }
+        }
     }
 
     @Override
@@ -344,9 +370,16 @@ public class MainActivity extends Activity implements
         } else if (view.getId() == R.id.button_sign_out) {
             setProgressBarIndeterminateVisibility(true);
             mHaikuApi.signOut(this);
+            mGoogleApiClient.disconnect();
         } else if (view.getId() == R.id.button_disconnect) {
             setProgressBarIndeterminateVisibility(true);
             mHaikuApi.disconnect(this);
+
+            if (mGoogleApiClient.isConnected()) {
+                Plus.AccountApi.clearDefaultAccount(mGoogleApiClient);
+                Plus.AccountApi.revokeAccessAndDisconnect(mGoogleApiClient);
+                mGoogleApiClient.disconnect();
+            }
         }
     }
 
@@ -356,16 +389,15 @@ public class MainActivity extends Activity implements
     private void beginSignInFlow() {
         setProgressBarIndeterminateVisibility(true);
         HaikuSession.State state = mHaikuPlusSession.checkSessionState(true);
+        mSignInClicked = true;
+
         if (state == HaikuSession.State.UNAUTHENTICATED) {
             Intent intent = AccountPicker.newChooseAccountIntent(
                     null, null, new String[]{"com.google"},
                     false, null, null, null, null);
             startActivityForResult(intent, REQ_CHOOSE_ACCOUNT);
-        } else if (state == HaikuSession.State.HAS_ACCOUNT) {
-            mShouldResolve = true;
-            mHaikuApi.fetchCurrentUser(MainActivity.this);
         } else {
-            mHaikuApi.fetchCurrentUser(MainActivity.this);
+            mGoogleApiClient.connect();
         }
     }
 
@@ -389,16 +421,19 @@ public class MainActivity extends Activity implements
             if (resultCode == RESULT_OK) {
                 String accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
                 mHaikuPlusSession.storeAccountName(accountName);
-                mHaikuApi.fetchCurrentUser(this);
-                mShouldResolve = true;
-            }
-        } else if (requestCode == REQ_CONSENT) {
-            if (resultCode == RESULT_OK) {
-                new CheckOrRetrieveCodeTask().execute();
+
+                mSignInClicked = true;
+                mGoogleApiClient.connect();
             }
         } else if (requestCode == REQ_SHARE && resultCode == RESULT_OK) {
             // Sharing triggers its own toast so we don't need to feed back to the user.
             Log.d(TAG, "Post shared.");
+        } else if (requestCode == REQ_SIGN_IN) {
+            mIsResolving = false;
+
+            if (!mGoogleApiClient.isConnecting()) {
+                mGoogleApiClient.connect();
+            }
         }
     }
 
@@ -452,48 +487,6 @@ public class MainActivity extends Activity implements
     private void dismissDialog() {
         if (mDialog.isShowing()) {
             mDialog.dismiss();
-        }
-    }
-
-    /**
-     * This class will only be instantiated as part of an explicit sign in click,
-     * so we need to check the server state immediately.This means testing with the ID
-     * token for a session, and if that doesn't work firing off a code retrieve task.
-     */
-    private class CheckOrRetrieveCodeTask extends AsyncTask<Void, Void, String> {
-        @Override
-        protected String doInBackground(Void... params) {
-            if (mHaikuPlusSession.getAccountName() == null) {
-                return null;
-            }
-
-            String code = null;
-
-            try {
-                code = mHaikuPlusSession.getCodeSynchronous();
-            } catch (UserRecoverableAuthException userEx) {
-                startActivityForResult(userEx.getIntent(), REQ_CONSENT);
-            } catch (GoogleAuthException gaEx) {
-                Log.e(TAG, gaEx.getMessage());
-            } catch (HaikuSession.CodeException e) {
-                Log.e(TAG, e.getMessage(), e);
-                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-
-            return code;
-        }
-
-        @Override
-        protected void onPostExecute(String uoc) {
-            super.onPostExecute(uoc);
-            if (uoc != null) {
-                setProgressBarIndeterminateVisibility(true);
-                mHaikuPlusSession.setCode(uoc);
-                mHaikuApi.fetchCurrentUser(MainActivity.this);
-            } else {
-                Log.d(TAG, "Invalid user/code response");
-            }
-            mShouldResolve = false;
         }
     }
 }
