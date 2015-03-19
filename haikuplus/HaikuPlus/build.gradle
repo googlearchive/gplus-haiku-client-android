@@ -31,7 +31,7 @@ dependencies {
     // You must install or update the Google Repository through the SDK manager to use this dependency.
     // The Google Repository (separate from the corresponding library) can be found in the Extras category.
     compile 'com.android.support:appcompat-v7:21+'
-    compile 'com.google.android.gms:play-services:7.0.87'
+    compile 'com.google.android.gms:play-services:7.0.0'
 
     compile 'com.google.code.gson:gson:2.2.+'
     compile files('libs/volley.jar')
