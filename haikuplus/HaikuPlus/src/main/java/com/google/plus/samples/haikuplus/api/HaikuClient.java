@@ -15,6 +15,7 @@
 
 package com.google.plus.samples.haikuplus.api;
 
+import com.android.volley.toolbox.RequestFuture;
 import com.google.gson.reflect.TypeToken;
 import com.google.plus.samples.haikuplus.Constants;
 import com.google.plus.samples.haikuplus.models.Haiku;
@@ -30,6 +31,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * API wrapper class for the Haiku+ API. All interactions with the Haiku+ backend service should
@@ -65,7 +67,6 @@ public class HaikuClient {
 
     private final HaikuSession mHaikuSession;
     private final VolleyContainer mVolley;
-    private Handler mHandler;
 
     /**
      * Interface for the callback when a haiku is retrieved individually from the API.
@@ -87,7 +88,6 @@ public class HaikuClient {
         public void onVoteWritten(Haiku haiku);
 
         public void onSignedOut();
-        public void codeSignInRequired();
     }
 
     /**
@@ -107,7 +107,6 @@ public class HaikuClient {
      */
     private HaikuClient(Context context, HaikuSession haikuSession) {
         mVolley = VolleyContainer.getInstance(context);
-        mHandler = new Handler();
         mHaikuSession = haikuSession;
     }
 
@@ -233,14 +232,10 @@ public class HaikuClient {
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError volleyError) {
-                        Log.d(TAG, "Retrieve user error");
+                        Log.d(TAG, "Retrieve user error: " + volleyError.getMessage());
                         if (listener != null) {
                             String err = getVolleyErrorCode(volleyError);
-                            if (HaikuApiRequest.REQUIRES_CODE.equals(err)) {
-                                listener.codeSignInRequired();
-                            } else {
-                                listener.onUserRetrieved(null);
-                            }
+                            listener.onUserRetrieved(null);
                         }
                     }
                 },
@@ -273,14 +268,9 @@ public class HaikuClient {
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError volleyError) {
-                        Log.d(TAG, "Write Haiku error");
+                        Log.d(TAG, "Write Haiku error: " + volleyError.getMessage());
                         if (listener != null) {
-                            String err = getVolleyErrorCode(volleyError);
-                            if (HaikuApiRequest.REQUIRES_CODE.equals(err)) {
-                                listener.codeSignInRequired();
-                            } else {
-                                listener.onHaikuWritten(null);
-                            }
+                            listener.onHaikuWritten(null);
                         }
                     }
                 },
@@ -315,14 +305,9 @@ public class HaikuClient {
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError volleyError) {
-                        Log.d(TAG, "Write Haiku error");
+                        Log.d(TAG, "Write Haiku error: " + volleyError.getMessage());
                         if (listener != null) {
-                            String err = getVolleyErrorCode(volleyError);
-                            if (HaikuApiRequest.REQUIRES_CODE.equals(err)) {
-                                listener.codeSignInRequired();
-                            } else {
-                                listener.onVoteWritten(haiku);
-                            }
+                            listener.onVoteWritten(haiku);
                         }
                     }
                 },
